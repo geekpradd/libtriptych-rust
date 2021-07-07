@@ -7,3 +7,4 @@ edition = "2018"
 
 [dependencies]
 curve25519-dalek = "3"
+sha2 = "0.9.5"
