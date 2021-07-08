@@ -25,3 +25,13 @@ pub fn pedersen_commitment(data: &[Vec<Scalar>], r: &Scalar) -> RistrettoPoint {
     return com;
 }
 
+pub fn delta(value: &usize, i: &usize) -> Scalar {
+  
+    if *i == *value {
+        return Scalar::one();
+    }
+    else {
+        return Scalar::zero();
+    }
+}
+
