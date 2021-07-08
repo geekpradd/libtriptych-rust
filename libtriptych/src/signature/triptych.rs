@@ -31,10 +31,10 @@ pub fn convolve(x: &[Scalar], y: &[Scalar]) -> Vec<Scalar> {
 #[derive(Clone, Debug)]
 pub struct TriptychEllipticCurveState {
     J: RistrettoPoint,
-    A: Vec<Vec<RistrettoPoint>>,
-    B: Vec<Vec<RistrettoPoint>>,
-    C: Vec<Vec<RistrettoPoint>>,
-    D: Vec<Vec<RistrettoPoint>>,
+    A: RistrettoPoint,
+    B: RistrettoPoint,
+    C: RistrettoPoint,
+    D: RistrettoPoint,
     X: Vec<RistrettoPoint>,
     Y: Vec<RistrettoPoint>
 }
@@ -119,9 +119,13 @@ pub fn prove(M: Vec<RistrettoPoint>, l: usize, r: Scalar, m: usize) {
     let mut Y = (0..m).map(|i| rho[i]*J).collect::<Vec<RistrettoPoint>>();
 
     let mut X = (0..m).map(|j| (0..N).fold(rho[j]*G, |acc, k|{
-        acc + p[k][j]*M[k]
-    })).collect::<Vec<RistrettoPoint>>();
+                                            acc + p[k][j]*M[k]
+                                        })).collect::<Vec<RistrettoPoint>>();
 
 
+    let state: TriptychEllipticCurveState = TriptychEllipticCurveState {
+        J, A, B, C, D, X, Y
+    };
+    //  need to hash here and then output can be created (scalar state)
     
 ;}
