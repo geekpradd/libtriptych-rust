@@ -35,3 +35,19 @@ pub fn delta(value: &usize, i: &usize) -> Scalar {
     }
 }
 
+pub fn power(base: &Scalar, exp: &usize) -> Scalar {
+    let mut answer = Scalar::one();
+
+    while exp > &0 {
+        if exp % 2 == 1 {
+            let answer = answer*base;
+        }
+        else {
+            let exp = exp/2;
+            let base = base*base;
+        }
+
+    }
+
+    return answer;
+}

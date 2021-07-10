@@ -7,6 +7,8 @@ use curve25519_dalek::traits::Identity;
 use crate::util;
 use rand::Rng;
 use std::convert::TryInto;
+use sha2::Sha512;
+
 
 pub fn pad(n: &usize, m: &usize) -> Vec<usize> {
     let mut s = format!("{:b}", n); // this is using base 2, for other bases this will change
@@ -40,7 +42,7 @@ pub struct TriptychEllipticCurveState {
 }
 
 #[derive(Clone, Debug)]
-pub struct TryptichScalarState {
+pub struct TriptychScalarState {
     f: Vec<Vec<Scalar>>,
     zA: Scalar,
     zC: Scalar,
@@ -50,12 +52,12 @@ pub struct TryptichScalarState {
 #[derive(Clone, Debug)]
 pub struct Signature {
     a: TriptychEllipticCurveState,
-    z: TryptichScalarState
+    z: TriptychScalarState
 }
 
 // Commitment to Zero Proof
 // SARANG docs fill in, need to add here later
-pub fn prove(M: Vec<RistrettoPoint>, l: usize, r: Scalar, m: usize) {
+pub fn prove(M: Vec<RistrettoPoint>, l: usize, r: Scalar, m: usize) -> Signature{
     let n: usize = 2; // base of decomposition, Tryptich supports arbitary base, we prefer binary here
 
     // To-DO: RANDOM SEED NOT IMPLEMENTED YET, REFER SARANG'S REPO
@@ -66,12 +68,19 @@ pub fn prove(M: Vec<RistrettoPoint>, l: usize, r: Scalar, m: usize) {
     // In Risretto Curve, all POINTS are generators. G choice is arbitary here
     let mut rng = rand::thread_rng();
 
+    let mut transcript: Vec<u8> = Vec::with_capacity(1000);
+
     // Error Checks are left, need to add that 
     let J = r.invert()*U;
     let rA = Scalar::random(&mut rng);
     let rB = Scalar::random(&mut rng);
     let rC = Scalar::random(&mut rng);
-    let rD = Scalar::random(&mut rng); // need to add seed functionality here
+    let rD = Scalar::random(&mut rng); // need to add seed functionality 
+
+    transcript.extend_from_slice(rA.as_bytes());
+    transcript.extend_from_slice(rB.as_bytes());
+    transcript.extend_from_slice(rC.as_bytes());
+    transcript.extend_from_slice(rD.as_bytes());
 
     let mut a = (0..m).map(|_| (0..n).map(|_| Scalar::random(&mut rng)).collect::<Vec<Scalar>>()).collect::<Vec<Vec<Scalar>>>();
 
@@ -82,6 +91,11 @@ pub fn prove(M: Vec<RistrettoPoint>, l: usize, r: Scalar, m: usize) {
     }
 
     let mut A = util::pedersen_commitment(&a, &rA);
+
+    transcript.extend_from_slice(A.compress().as_bytes());
+    
+
+
     let mut s = pad(&l, &m); // this is for base 2
 
     let mut b = (0..m).map(|j| (0..n).map(|i| util::delta(&s[j], &i)).collect::<Vec<Scalar>>()).collect::<Vec<Vec<Scalar>>>();
@@ -97,6 +111,11 @@ pub fn prove(M: Vec<RistrettoPoint>, l: usize, r: Scalar, m: usize) {
 
     let mut D = util::pedersen_commitment(&d, &rD);
 
+    transcript.extend_from_slice(B.compress().as_bytes());
+    transcript.extend_from_slice(C.compress().as_bytes());
+    transcript.extend_from_slice(D.compress().as_bytes());
+
+
     let m_u32: u32 = m.try_into().unwrap();
     let N = usize::pow(n, m_u32); // we have n = 2, N = 2**m = len(M)
 
@@ -111,7 +130,6 @@ pub fn prove(M: Vec<RistrettoPoint>, l: usize, r: Scalar, m: usize) {
         }
     }
 
-    let mut X = vec![RistrettoPoint::identity(); m];
     
 
     let mut rho = (0..m).map(|_| Scalar::random(&mut rng)).collect::<Vec<Scalar>>();
@@ -122,10 +140,33 @@ pub fn prove(M: Vec<RistrettoPoint>, l: usize, r: Scalar, m: usize) {
                                             acc + p[k][j]*M[k]
                                         })).collect::<Vec<RistrettoPoint>>();
 
+    for i in 0..m {
+        transcript.extend_from_slice(rho[i].as_bytes());
+        transcript.extend_from_slice(Y[i].compress().as_bytes());
+        transcript.extend_from_slice(X[i].compress().as_bytes());
+    }
 
-    let state: TriptychEllipticCurveState = TriptychEllipticCurveState {
+    let ellipticstate: TriptychEllipticCurveState = TriptychEllipticCurveState {
         J, A, B, C, D, X, Y
     };
     //  need to hash here and then output can be created (scalar state)
+    let challenge = Scalar::hash_from_bytes::<Sha512>(&transcript);
+
+    let mut f = (0..m).map(|j| (0..n).map(|i| util::delta(&s[j], &i)*challenge + a[j][i]).collect::<Vec<Scalar>>()).collect::<Vec<Vec<Scalar>>>();
+
+    let mut zA = rA + challenge*rB;
+    let mut zC = challenge*rC + rD;
+
     
-;}
+
+    let mut z = r*util::power(&challenge, &m) - (0..m).fold(Scalar::zero(), |acc, j|{ acc + rho[j]*util::power(&challenge, &j)});
+
+    let scalarstate: TriptychScalarState = TriptychScalarState {
+        f, zA, zC, z
+    };
+
+    return Signature {
+        a: ellipticstate, z: scalarstate
+    };
+
+}
