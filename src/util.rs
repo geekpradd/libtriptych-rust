@@ -1,5 +1,7 @@
 use curve25519_dalek::ristretto::{RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek::traits::VartimeMultiscalarMul;
+
 use sha2::Sha512;
 
 pub fn pad(n: &usize, m: &usize) -> Vec<usize> {
@@ -28,7 +30,8 @@ pub fn hash_to_point(data: &str) -> RistrettoPoint {
     return RistrettoPoint::hash_from_bytes::<Sha512>(data.as_bytes());
 }
 
-pub fn pedersen_commitment(data: &[Vec<Scalar>], r: &Scalar) -> RistrettoPoint {
+// this is the slower version (direct)
+pub fn slow_pedersen_commitment(data: &[Vec<Scalar>], r: &Scalar) -> RistrettoPoint {
     let mut com = r * hash_to_point("H");
 
 
@@ -39,6 +42,15 @@ pub fn pedersen_commitment(data: &[Vec<Scalar>], r: &Scalar) -> RistrettoPoint {
             com = com + entry*point;
         }
     }
+
+    return com;
+}
+
+pub fn pedersen_commitment(data: &[Vec<Scalar>], r: &Scalar) -> RistrettoPoint {
+    let com = (0..data.len()).fold(r * hash_to_point("H"), |acc, i| {
+        let points = (0..data[i].len()).map(|j| hash_to_point(&format!("G{}{}", i, j))).collect::<Vec<RistrettoPoint>>();
+        acc + RistrettoPoint::vartime_multiscalar_mul(&data[i], &points)
+    });
 
     return com;
 }
@@ -100,10 +112,10 @@ mod util_test {
 
     #[test]
     pub fn test_convolve(){
-        let first = vec![Scalar::one(), Scalar::one()];
-        let second = vec![Scalar::one(), Scalar::one()];
+        let first = vec![Scalar::one(), Scalar::from(3u64)];
+        let second = vec![Scalar::from(5u64), Scalar::one()];
 
-        assert_eq!(util::convolve(&first, &second), vec![Scalar::one(), Scalar::one() + Scalar::one(), Scalar::one()]);
+        assert_eq!(util::convolve(&first, &second), vec![Scalar::from(5u64), Scalar::from(16u64), Scalar::from(3u64)]);
     }
 
 }
