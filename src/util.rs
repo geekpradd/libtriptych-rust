@@ -71,3 +71,39 @@ pub fn power(base_: &Scalar, exp_: &usize) -> Scalar {
 
     return answer;
 }
+
+#[cfg(test)]
+mod util_test {
+
+    use curve25519_dalek::scalar::Scalar;
+    use crate::util;
+    #[test]
+    pub fn test_power() {
+        let mut rng = rand::thread_rng();
+        let demo_scalar = Scalar::random(&mut rng);
+        let mut result = Scalar::one();
+        let exponent = 225;
+        for _ in 0..exponent{
+            result = result*demo_scalar;
+        }
+
+        assert_eq!(util::power(&demo_scalar, &exponent), result);
+    }
+
+    #[test]
+    pub fn test_pad(){
+        let result = util::pad(&127, &9);
+        let compare: Vec<usize> = vec![1, 1, 1, 1, 1, 1, 1, 0, 0];
+
+        assert_eq!(compare, result);
+    }
+
+    #[test]
+    pub fn test_convolve(){
+        let first = vec![Scalar::one(), Scalar::one()];
+        let second = vec![Scalar::one(), Scalar::one()];
+
+        assert_eq!(util::convolve(&first, &second), vec![Scalar::one(), Scalar::one() + Scalar::one(), Scalar::one()]);
+    }
+
+}
