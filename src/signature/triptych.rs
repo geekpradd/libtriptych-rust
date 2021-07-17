@@ -42,7 +42,7 @@ pub struct Signature {
 //  m: dimension such that len(M) == 2**m
 
 // This is the core Sigma Protocol being implemented, not the signature protocol
-pub fn base_prove(M: &[RistrettoPoint], l: &usize, r: &Scalar, m: &usize, message: &str) -> Signature{
+fn base_prove(M: &[RistrettoPoint], l: &usize, r: &Scalar, m: &usize, message: &str) -> Signature{
     let n: usize = 2; // base of decomposition, Tryptich supports arbitary base, we prefer binary here
 
     // To-DO: RANDOM SEED NOT IMPLEMENTED YET, REFER SARANG'S REPO
@@ -157,7 +157,7 @@ pub fn base_prove(M: &[RistrettoPoint], l: &usize, r: &Scalar, m: &usize, messag
 }
 
 // Verification of the base sigma protocol
-pub fn base_verify(M: &[RistrettoPoint], sgn: &Signature, m: &usize, message: &str) -> Result<(), Errors> {
+fn base_verify(M: &[RistrettoPoint], sgn: &Signature, m: &usize, message: &str) -> Result<(), Errors> {
     
     let mut transcript: Vec<u8> = Vec::with_capacity(1000);
     let ellipticState = &sgn.a;
@@ -328,7 +328,7 @@ mod triptych_test {
 
     #[test]
     pub fn test_signature(){
-        let size = 128;
+        let size = 64;
         let mut R: Vec<RistrettoPoint> = vec![RistrettoPoint::identity(); size];
         let mut x: Scalar = Scalar::one();
         let index = 14;
