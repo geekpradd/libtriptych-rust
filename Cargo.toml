@@ -2,6 +2,15 @@
 name = "libtriptych"
 version = "0.1.0"
 edition = "2018"
+authors = [
+    "Pradipta Bora <pradiptabora@cse.iitb.ac.in>"
+]
+description = "Triptych Log Sized Ring Signatures Crate for Rust"
+readme = "README.md"
+repository = "https://github.com/geekpradd/libtriptych-rust"
+license = "MIT"
+
+
 
 [dependencies]
 curve25519-dalek = "3"

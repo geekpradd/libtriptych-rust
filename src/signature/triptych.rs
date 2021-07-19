@@ -34,18 +34,12 @@ pub struct Signature {
     z: TriptychScalarState
 }
 
-// Commitment to Zero Proof
 
-//  M: public key list
-// l: M_l = rG
-// r: Pedersen blinder for M[l]
-//  m: dimension such that len(M) == 2**m
 
 // This is the core Sigma Protocol being implemented, not the signature protocol
 fn base_prove(M: &[RistrettoPoint], l: &usize, r: &Scalar, m: &usize, message: &str) -> Signature{
     let n: usize = 2; // base of decomposition, Tryptich supports arbitary base, we prefer binary here
 
-    // To-DO: RANDOM SEED NOT IMPLEMENTED YET, REFER SARANG'S REPO
     let U = util::hash_to_point("U");
 
     let G = util::hash_to_point("G"); 
@@ -54,12 +48,11 @@ fn base_prove(M: &[RistrettoPoint], l: &usize, r: &Scalar, m: &usize, message: &
 
     let mut transcript: Vec<u8> = Vec::with_capacity(40000);
 
-    // Error Checks are left, need to add that 
     let J = r.invert()*U;
     let rA = Scalar::random(&mut rng);
     let rB = Scalar::random(&mut rng);
     let rC = Scalar::random(&mut rng);
-    let rD = Scalar::random(&mut rng); // need to add seed functionality 
+    let rD = Scalar::random(&mut rng); 
 
 
     let mut a = (0..*m).map(|_| (0..n).map(|_| Scalar::random(&mut rng)).collect::<Vec<Scalar>>()).collect::<Vec<Vec<Scalar>>>();
@@ -82,7 +75,7 @@ fn base_prove(M: &[RistrettoPoint], l: &usize, r: &Scalar, m: &usize, message: &
     
 
 
-    let s = util::pad(&l, &m); // this is for base 2
+    let s = util::pad(&l, &m);
 
     let b = (0..*m).map(|j| (0..n).map(|i| util::delta(&s[j], &i)).collect::<Vec<Scalar>>()).collect::<Vec<Vec<Scalar>>>();
 
@@ -92,7 +85,7 @@ fn base_prove(M: &[RistrettoPoint], l: &usize, r: &Scalar, m: &usize, message: &
 
     let C = util::pedersen_commitment(&c, &rC);
 
-    // the minus may not work here, check later
+   
     let d = (0..*m).map(|j| (0..n).map(|i| -a[j][i]*a[j][i]).collect::<Vec<Scalar>>()).collect::<Vec<Vec<Scalar>>>();
 
     let D = util::pedersen_commitment(&d, &rD);
@@ -108,7 +101,7 @@ fn base_prove(M: &[RistrettoPoint], l: &usize, r: &Scalar, m: &usize, message: &
     let mut p = (0..N).map(|_| vec![]).collect::<Vec<Vec<Scalar>>>();
 
     for k in 0..N {
-        let binary_k = util::pad(&k, &m); // This can be sped up by gray codes, will have to change after bench
+        let binary_k = util::pad(&k, &m); 
         p[k] = vec![a[0][binary_k[0]], util::delta(&s[0], &binary_k[0])];
 
         for j in 1..*m {
@@ -134,7 +127,7 @@ fn base_prove(M: &[RistrettoPoint], l: &usize, r: &Scalar, m: &usize, message: &
     let ellipticstate: TriptychEllipticCurveState = TriptychEllipticCurveState {
         J, A, B, C, D, X, Y
     };
-    //  need to hash here and then output can be created (scalar state)
+   
     let challenge = Scalar::hash_from_bytes::<Sha512>(&transcript);
 
     let f = (0..*m).map(|j| (1..n).map(|i| util::delta(&s[j], &i)*challenge + a[j][i]).collect::<Vec<Scalar>>()).collect::<Vec<Vec<Scalar>>>();
@@ -218,7 +211,7 @@ fn base_verify(M: &[RistrettoPoint], sgn: &Signature, m: &usize, message: &str) 
 
     let mut fourthRHSScalar = Scalar::zero();
     for k in 0..N {
-        let binary_k = util::pad(&k, &m); // This can be sped up by gray codes, will have to change after bench
+        let binary_k = util::pad(&k, &m); 
         
         let mut product_term = Scalar::one();
 
@@ -249,8 +242,6 @@ pub fn KeyGen() -> (Scalar, RistrettoPoint) {
     return (r, r*G);
 }
 
-// we need x to be secret key of one of the public keys in R for this ton work as of now
-// need to add error handling
 pub fn Sign(x: &Scalar, M: &str, R: &[RistrettoPoint]) -> Signature {
     let G = util::hash_to_point("G"); 
 
