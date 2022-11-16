@@ -9,6 +9,11 @@ use crate::Errors::{self, TriptychError};
 use std::convert::TryInto;
 use sha2::Sha512;
 
+// use serde::{Serialize, Deserialize};
+
+use std::mem::size_of_val;
+
+// #[derive(Clone, Debug, Serialize, Deserialize)]
 #[derive(Clone, Debug)]
 pub struct TriptychEllipticCurveState {
     J: RistrettoPoint,
@@ -34,7 +39,24 @@ pub struct Signature {
     z: TriptychScalarState
 }
 
+pub fn GetSize(sgn: &Signature) ->  usize {
+    let mut size = size_of_val(&sgn.a.J);
+    size += size_of_val(&sgn.a.A);
+    size += size_of_val(&sgn.a.B);
+    size += size_of_val(&sgn.a.C);
+    size += size_of_val(&sgn.a.D);
+    size += size_of_val(&*sgn.a.X);
+    size += size_of_val(&*sgn.a.Y);
 
+    for s in sgn.z.f.iter() {
+        size += size_of_val(&*s);
+    }
+
+    size += size_of_val(&sgn.z.zA);
+    size += size_of_val(&sgn.z.zC);
+    size += size_of_val(&sgn.z.z);
+    return size;
+}
 
 // This is the core Sigma Protocol being implemented, not the signature protocol
 fn base_prove(M: &[RistrettoPoint], l: &usize, r: &Scalar, m: &usize, message: &str) -> Signature{
