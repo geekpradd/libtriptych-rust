@@ -13,7 +13,7 @@ license = "MIT"
 
 
 [dependencies]
-curve25519-dalek = "3"
+curve25519-dalek = {version="3", features=["serde"]}
 # curve25519-dalek  = { git = "https://github.com/shachar1236/curve25519-dalek" }
 sha2 = "0.9.5"
 rand = "0.7.3"

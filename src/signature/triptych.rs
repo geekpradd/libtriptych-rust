@@ -264,6 +264,33 @@ pub fn KeyGen() -> (Scalar, RistrettoPoint) {
     return (r, r*G);
 }
 
+pub fn SerializePublicKey(R: &RistrettoPoint) -> Result<Vec<u8>, Box<bincode::ErrorKind>> {
+    let encoded = bincode::serialize(&R);
+    return  encoded;
+}
+
+pub fn DeserializePublicKey(bytes: Vec<u8>) -> Result<RistrettoPoint, Box<bincode::ErrorKind>> {
+    return bincode::deserialize(&bytes[..]);
+}
+
+pub fn SerializePrivateKey(sc: Scalar) ->  [u8; 32] {
+    let encoded = sc.to_bytes();
+    return  encoded;
+}
+
+pub fn DeserializePrivateKey(bytes: [u8; 32]) ->  Option<Scalar> {
+    return  Scalar::from_canonical_bytes(bytes).into();
+}
+
+pub fn SerializePublicKeysList(R: &[RistrettoPoint]) -> Result<Vec<u8>, Box<bincode::ErrorKind>> {
+    let encoded = bincode::serialize(&R);
+    return  encoded;
+}
+
+pub fn DeserializePublicKeysList(bytes: Vec<u8>) -> Result<Vec<RistrettoPoint>, Box<bincode::ErrorKind>> {
+    return  bincode::deserialize(&bytes[..]);
+}
+
 pub fn Sign(x: &Scalar, M: &str, R: &[RistrettoPoint]) -> Signature {
     let G = util::hash_to_point("G"); 
 
@@ -305,6 +332,7 @@ pub fn Link(sgn_a: &Signature, sgn_b: &Signature) -> bool {
 #[cfg(test)]
 mod triptych_test {
 
+    use curve25519_dalek::digest::generic_array::typenum::assert_type;
     use curve25519_dalek::ristretto::{RistrettoPoint};
     use curve25519_dalek::scalar::Scalar;
     use curve25519_dalek::traits::Identity;
@@ -362,6 +390,32 @@ mod triptych_test {
 
         assert!(result.is_ok());
 
+    }
+
+    #[test]
+    pub fn test_serialize_scalar(){
+        let (sc, _) = triptych::KeyGen();
+
+        let encoded = triptych::SerializePrivateKey(sc);
+        
+        let decoded: Option<Scalar> = triptych::DeserializePrivateKey(encoded);
+        
+        assert!(!decoded.is_none());
+        
+        let sc_decoded = decoded.unwrap();
+        
+        assert_eq!(sc, sc_decoded);
+
+    }
+
+    #[test]
+    pub fn test_serialize_rissoto_point(){
+        let (_, rp) = triptych::KeyGen();
+        
+        let encoded = triptych::SerializePublicKey(&rp).unwrap();
+        
+        let decoded = bincode::deserialize(&encoded[..]).unwrap();
+        assert_eq!(rp, decoded);
     }
 
 }
